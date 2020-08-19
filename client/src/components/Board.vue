@@ -4,6 +4,7 @@
 
 <script>
 import axios from 'axios'
+import qs from 'qs'
 
 export default {
   name: 'Board',
@@ -14,13 +15,11 @@ export default {
   },
   methods: {
     getBoard() {
+      let data = { 'id': '1' }
       axios
-      .get('/board')
+      .post('/board', qs.stringify(data))
       .then(res => {
-        this.len_card_pile = res.data.len_card_pile
-        this.discard_pile = res.data.discard_pile
         this.players = res.data.players
-        this.player_tiles = res.data.player_tiles
         var board = document.getElementById('board')
         for(var i = 0; i < this.players.length; i++) {
           var button = document.createElement('button')

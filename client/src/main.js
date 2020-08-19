@@ -10,6 +10,7 @@ import 'element-ui/lib/theme-chalk/index.css'
 Vue.config.productionTip = false
 
 axios.defaults.baseURL = '/api'
+axios.defaults.headers = { "Content-Type": "application/x-www-form-urlencoded" }
 
 Vue.use(ElementUI)
 

@@ -1,5 +1,6 @@
 import json
 import random
+from collections import Counter
 
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -65,6 +66,93 @@ def deal(card_pile, circle):
     player_tiles[circle[0]].append(card_pile[start])
     card_pile = card_pile[(start + 1):]
     return card_pile, player_tiles
+
+
+def check_meld(meld_0, meld_1, meld_2, meld_3=None):
+    if (meld_0 == meld_1 and meld_1 == meld_2) or (meld_0 == meld_1 -1 and meld_1 == meld_2 - 1):
+        return True
+    else:
+        return False
+
+
+def check_type_ranks(pair, type, ranks, joker_count=0):
+    # delete pair
+    if type in ('season', 'gentleman'):
+        return True, joker_count
+    elif type in ('wind', 'dragon'):
+        return True, joker_count
+    else:
+        while ranks and len(ranks) >= 3:
+            meld_0 = int(ranks.pop())
+            meld_1 = int(ranks.pop())
+            meld_2 = int(ranks.pop())
+            if check_meld(meld_0, meld_1, meld_2):
+                continue
+            elif joker_count > 0:
+                joker_count = joker_count - 1
+            else:
+                return False, joker_count
+        return True, joker_count
+
+
+def check_win_with_pair(pair, collector, joker_count):
+    for type, ranks in collector.items():
+        result, joker_count = check_type_ranks(pair, type, ranks, joker_count)
+        if result or joker_count > 0:
+            continue
+        else:
+            return False
+    return True
+
+
+def check_win_with_pair_candicates(pair_candicates, collector, joker_count):
+    for pair in pair_candicates:
+        if pair[0] == 'joker' and pair[1] == 'joker':
+            local_joker_count = joker_count - 2
+            # delele none
+            if check_win_with_pair(pair, collector, joker_count):
+                return True
+        elif pair[0] == 'joker' or pair[1] == 'joker':
+            local_joker_count = joker_count - 1
+            # delete one
+            if check_win_with_pair(pair, collector, joker_count):
+                return True
+        else:
+            local_joker_count = joker_count - 0
+            # delete two
+            if check_win_with_pair(pair, collector, joker_count):
+                return True
+
+
+def check_win(player_tiles):
+    collector = {
+        'season': [],
+        'gentleman': [],
+        'wind': [],
+        'dragon': [],
+        'dot': [],
+        'bamboo': [],
+        'character': [],
+    }
+
+    joker_count = 0
+    for tile in player_tiles:
+        if tile == 'joker':
+            joker_count = joker_count + 1
+        else:
+            type, rank = tile.split('_')
+            collector[type].append(rank)
+
+    pair_candicates = []
+    for type, ranks in collector.items():
+        rank_counter = dict(Counter(ranks))
+        for rank, count in rank_counter.items():
+            if count >= 2:
+                pair_candicates.append(['%s_%s' % (type, rank), '%s_%s' % (type, rank)])
+        ranks.sort()
+        ranks.reverse()
+
+    return check_win_with_pair_candicates(pair_candicates, collector, joker_count)
 
 
 @app.route('/')
@@ -382,5 +470,33 @@ def do_board_draw():
     if update_data:
         Board.query.filter_by(id=input['id']).update(update_data)
         db.session.commit()
+
+    return json.dumps(output)
+
+@app.route('/board/win', methods=['POST'])
+def do_board_win():
+    input = {
+        'id': int(request.form['id']),
+        'player': request.form['player'],
+    }
+    output = {
+        'result': 'WIN',
+    }
+
+    board = Board.query.filter_by(id=input['id']).first()
+
+    if board.player_1 == input['player']:
+        player_tiles = board.player_1_tiles.split(',')
+    elif board.player_2 == input['player']:
+        player_tiles = board.player_2_tiles.split(',')
+    elif board.player_3 == input['player']:
+        player_tiles = board.player_3_tiles.split(',')
+    elif board.player_4 == input['player']:
+        player_tiles = board.player_4_tiles.split(',')
+    else:
+        output['result'] = 'NO SUCH PLAYER'
+
+    if player_tiles:
+        output['result'] = check_win(player_tiles)
 
     return json.dumps(output)

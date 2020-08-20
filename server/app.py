@@ -77,6 +77,7 @@ def do_board():
     input = {
         'id': int(request.form['id']),
     }
+    output = {}
     board = Board.query.filter_by(id=input['id']).first()
     if board:
         if board.card_pile:
@@ -108,9 +109,6 @@ def do_board():
             'players': players,
         }
 
-    else:
-        output = {}
-
     return json.dumps(output)
 
 
@@ -120,14 +118,17 @@ def do_board_init():
         'total': int(request.form['total']),
         'master': request.form['master'],
     }
+    output = {
+        'id': None,
+    }
+
+    board = Board(total=input['total'], number=0, player_1=player_1.id)
+    output['id'] = board.id
+
     player_1 = Player.query.filter_by(id=input['master']).first()
-    board = Board(total=input['total'], number=1, player_1=player_1.id)
     db.session.add(board)
     db.session.commit()
 
-    output = {
-        'id': board.id,
-    }
     return json.dumps(output)
 
 
@@ -137,35 +138,36 @@ def do_board_join():
         'id': int(request.form['id']),
         'slave': request.form['slave'],
     }
+    output = {
+        'result': None,
+        'position': None,
+    }
+
     board = Board.query.filter_by(id=input['id']).first()
 
     if board.player_1 == input['slave']:
-        result, position = 'REJECT', 1
+        output['result'], output['position'] = 'REJECT', 1
     elif not board.player_2:
-        Board.query.filter_by(id=input['id']).update({'player_2':input['slave']})
+        Board.query.filter_by(id=input['id']).update({'player_2': input['slave']})
         db.session.commit()
-        result, position = 'ACCEPT', 2
+        output['result'], output['position'] = 'ACCEPT', 2
     elif board.player_2 == input['slave']:
-        result, position = 'REJECT', 2
+        output['result'], output['position'] = 'REJECT', 2
     elif not board.player_3:
-        Board.query.filter_by(id=input['id']).update({'player_3':input['slave']})
+        Board.query.filter_by(id=input['id']).update({'player_3': input['slave']})
         db.session.commit()
-        result, position = 'ACCEPT', 3
+        output['result'], output['position'] = 'ACCEPT', 3
     elif board.player_3 == input['slave']:
-        result, position = 'REJECT', 3
+        output['result'], output['position'] = 'REJECT', 3
     elif not board.player_4:
-        Board.query.filter_by(id=input['id']).update({'player_4':input['slave']})
+        Board.query.filter_by(id=input['id']).update({'player_4': input['slave']})
         db.session.commit()
-        result, position = 'ACCEPT', 4
+        output['result'], output['position'] = 'ACCEPT', 4
     elif board.player_4 == input['slave']:
-        result, position = 'REJECT', 4
+        output['result'], output['position'] = 'REJECT', 4
     else:
-        result, position = 'REJECT', 0
+        output['result'], output['position'] = 'REJECT', 0
 
-    output = {
-        'result': result,
-        'position': position,
-    }
     return json.dumps(output)
 
 
@@ -174,6 +176,10 @@ def do_board_start():
     input = {
         'id': int(request.form['id']),
     }
+    output = {
+        'result': 'START',
+    }
+
     board = Board.query.filter_by(id=input['id']).first()
     banker = board.number % 4
     circle_map = [
@@ -186,16 +192,195 @@ def do_board_start():
     card_pile, discard_pile = shuffle()
     card_pile, player_tiles = deal(card_pile, circle)
     update_data = {
+        'number': board.number + 1,
         'card_pile': ','.join(card_pile),
+        'discard_pile': None,
         'player_1_tiles': ','.join(player_tiles['player_1']),
         'player_2_tiles': ','.join(player_tiles['player_2']),
         'player_3_tiles': ','.join(player_tiles['player_3']),
         'player_4_tiles': ','.join(player_tiles['player_4']),
+        'player_1_played_tiles': None,
+        'player_2_played_tiles': None,
+        'player_3_played_tiles': None,
+        'player_4_played_tiles': None,
     }
     Board.query.filter_by(id=input['id']).update(update_data)
     db.session.commit()
 
-    output = {
-        'result': 'START',
+    return json.dumps(output)
+
+
+@app.route('/board/restart', methods=['POST'])
+def do_board_restart():
+    input = {
+        'id': int(request.form['id']),
     }
+    output = {
+        'result': 'RESTART',
+    }
+
+    board = Board.query.filter_by(id=input['id']).first()
+    banker = board.number % 4
+    circle_map = [
+        ['player_1', 'player_2', 'player_3', 'player_4'],
+        ['player_2', 'player_3', 'player_4', 'player_1'],
+        ['player_3', 'player_4', 'player_2', 'player_1'],
+        ['player_4', 'player_1', 'player_2', 'player_3'],
+    ]
+    circle = circle_map[banker]
+    card_pile, discard_pile = shuffle()
+    card_pile, player_tiles = deal(card_pile, circle)
+    update_data = {
+        'number': board.number,
+        'card_pile': ','.join(card_pile),
+        'discard_pile': None,
+        'player_1_tiles': ','.join(player_tiles['player_1']),
+        'player_2_tiles': ','.join(player_tiles['player_2']),
+        'player_3_tiles': ','.join(player_tiles['player_3']),
+        'player_4_tiles': ','.join(player_tiles['player_4']),
+        'player_1_played_tiles': None,
+        'player_2_played_tiles': None,
+        'player_3_played_tiles': None,
+        'player_4_played_tiles': None,
+    }
+    Board.query.filter_by(id=input['id']).update(update_data)
+    db.session.commit()
+
+    return json.dumps(output)
+
+
+@app.route('/board/play', methods=['POST'])
+def do_board_play():
+    input = {
+        'id': int(request.form['id']),
+        'player': request.form['player'],
+        'tile': request.form['tile'],
+    }
+    output = {
+        'result': 'PLAYED',
+    }
+    board = Board.query.filter_by(id=input['id']).first()
+    discard_pile = board.discard_pile.split(',') if board.discard_pile else []
+
+    update_data = None
+    if board.player_1 == input['player']:
+        player_tiles = board.player_1_tiles.split(',')
+        player_played_tiles = board.player_1_played_tiles.split(',') if board.player_1_played_tiles else []
+        if input['tile'] in player_tiles:
+            player_tiles.remove(input['tile'])
+            player_played_tiles.append(input['tile'])
+            discard_pile.append(input['tile'])
+            update_data = {
+                'player_1_tiles': ','.join(player_tiles),
+                'player_1_played_tiles': ','.join(player_played_tiles),
+                'discard_pile': ','.join(discard_pile),
+            }
+        else:
+            output['result'] = 'NO SUCH TILE'
+    elif board.player_2 == input['player']:
+        player_tiles = board.player_2_tiles.split(',')
+        player_played_tiles = board.player_2_played_tiles.split(',') if board.player_2_played_tiles else []
+        if input['tile'] in player_tiles:
+            player_tiles.remove(input['tile'])
+            player_played_tiles.append(input['tile'])
+            discard_pile.append(input['tile'])
+            update_data = {
+                'player_2_tiles': ','.join(player_tiles),
+                'player_2_played_tiles': ','.join(player_played_tiles),
+                'discard_pile': ','.join(discard_pile),
+            }
+        else:
+            output['result'] = 'NO SUCH TILE'
+    elif board.player_3 == input['player']:
+        player_tiles = board.player_3_tiles.split(',')
+        player_played_tiles = board.player_3_played_tiles.split(',') if board.player_3_played_tiles else []
+        if input['tile'] in player_tiles:
+            player_tiles.remove(input['tile'])
+            player_played_tiles.append(input['tile'])
+            discard_pile.append(input['tile'])
+            update_data = {
+                'player_3_tiles': ','.join(player_tiles),
+                'player_3_played_tiles': ','.join(player_played_tiles),
+                'discard_pile': ','.join(discard_pile),
+            }
+        else:
+            output['result'] = 'NO SUCH TILE'
+    elif board.player_4 == input['player']:
+        player_tiles = board.player_4_tiles.split(',')
+        player_played_tiles = board.player_4_played_tiles.split(',') if board.player_4_played_tiles else []
+        if input['tile'] in player_tiles:
+            player_tiles.remove(input['tile'])
+            player_played_tiles.append(input['tile'])
+            discard_pile.append(input['tile'])
+            update_data = {
+                'player_4_tiles': ','.join(player_tiles),
+                'player_4_played_tiles': ','.join(player_played_tiles),
+                'discard_pile': ','.join(discard_pile),
+            }
+        else:
+            output['result'] = 'NO SUCH TILE'
+    else:
+        output['result'] = 'NO SUCH PLAYER'
+
+    if update_data:
+        Board.query.filter_by(id=input['id']).update(update_data)
+        db.session.commit()
+
+    return json.dumps(output)
+
+
+@app.route('/board/draw', methods=['POST'])
+def do_board_draw():
+    input = {
+        'id': int(request.form['id']),
+        'player': request.form['player'],
+    }
+    output = {
+        'result': 'DREW',
+        'tile': None,
+    }
+
+    board = Board.query.filter_by(id=input['id']).first()
+    card_pile = board.card_pile.split(',') if board.card_pile else []
+
+    update_data = None
+    if board.player_1 == input['player']:
+        player_tiles = board.player_1_tiles.split(',')
+        output['tile'] = card_pile.pop()
+        player_tiles.append(output['tile'])
+        update_data = {
+            'player_1_tiles': ','.join(player_tiles),
+            'card_pile': ','.join(card_pile),
+        }
+    elif board.player_2 == input['player']:
+        player_tiles = board.player_2_tiles.split(',')
+        output['tile'] = card_pile.pop()
+        player_tiles.append(output['tile'])
+        update_data = {
+            'player_2_tiles': ','.join(player_tiles),
+            'card_pile': ','.join(card_pile),
+        }
+    elif board.player_3 == input['player']:
+        player_tiles = board.player_3_tiles.split(',')
+        output['tile'] = card_pile.pop()
+        player_tiles.append(output['tile'])
+        update_data = {
+            'player_3_tiles': ','.join(player_tiles),
+            'card_pile': ','.join(card_pile),
+        }
+    elif board.player_4 == input['player']:
+        player_tiles = board.player_4_tiles.split(',')
+        output['tile'] = card_pile.pop()
+        player_tiles.append(output['tile'])
+        update_data = {
+            'player_4_tiles': ','.join(player_tiles),
+            'card_pile': ','.join(card_pile),
+        }
+    else:
+        output['result'] = 'NO SUCH PLAYER'
+
+    if update_data:
+        Board.query.filter_by(id=input['id']).update(update_data)
+        db.session.commit()
+
     return json.dumps(output)

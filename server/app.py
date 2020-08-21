@@ -32,6 +32,10 @@ class Board(db.Model):
     player_2_tiles = db.Column(db.String(512))
     player_3_tiles = db.Column(db.String(512))
     player_4_tiles = db.Column(db.String(512))
+    player_1_fixed_tiles = db.Column(db.JSON)
+    player_2_fixed_tiles = db.Column(db.JSON)
+    player_3_fixed_tiles = db.Column(db.JSON)
+    player_4_fixed_tiles = db.Column(db.JSON)
     player_1_played_tiles = db.Column(db.String(512))
     player_2_played_tiles = db.Column(db.String(512))
     player_3_played_tiles = db.Column(db.String(512))
@@ -287,6 +291,10 @@ def do_board_start():
         'player_2_tiles': ','.join(player_tiles['player_2']),
         'player_3_tiles': ','.join(player_tiles['player_3']),
         'player_4_tiles': ','.join(player_tiles['player_4']),
+        'player_1_fixed_tiles': None,
+        'player_2_fixed_tiles': None,
+        'player_3_fixed_tiles': None,
+        'player_4_fixed_tiles': None,
         'player_1_played_tiles': None,
         'player_2_played_tiles': None,
         'player_3_played_tiles': None,
@@ -326,6 +334,10 @@ def do_board_restart():
         'player_2_tiles': ','.join(player_tiles['player_2']),
         'player_3_tiles': ','.join(player_tiles['player_3']),
         'player_4_tiles': ','.join(player_tiles['player_4']),
+        'player_1_fixed_tiles': None,
+        'player_2_fixed_tiles': None,
+        'player_3_fixed_tiles': None,
+        'player_4_fixed_tiles': None,
         'player_1_played_tiles': None,
         'player_2_played_tiles': None,
         'player_3_played_tiles': None,
@@ -473,6 +485,7 @@ def do_board_draw():
 
     return json.dumps(output)
 
+
 @app.route('/board/win', methods=['POST'])
 def do_board_win():
     input = {
@@ -498,5 +511,111 @@ def do_board_win():
 
     if player_tiles:
         output['result'] = check_win(player_tiles)
+
+    return json.dumps(output)
+
+
+@app.route('/board/pong', methods=['POST'])
+def do_board_pong():
+    input = {
+        'id': int(request.form['id']),
+        'player': request.form['player'],
+    }
+    output = {
+        'result': 'PONG',
+    }
+
+    board = Board.query.filter_by(id=input['id']).first()
+
+    if board.player_1 == input['player']:
+        player_tiles = board.player_1_tiles.split(',')
+    elif board.player_2 == input['player']:
+        player_tiles = board.player_2_tiles.split(',')
+    elif board.player_3 == input['player']:
+        player_tiles = board.player_3_tiles.split(',')
+    elif board.player_4 == input['player']:
+        player_tiles = board.player_4_tiles.split(',')
+    else:
+        pass
+
+    if player_tiles:
+        discard_pile = board.discard_pile.split(',')
+        last = discard_pile.pop()
+        player_tiles.append(last)
+
+    return json.dumps(output)
+
+
+@app.route('/board/kong', methods=['POST'])
+def do_board_kong():
+    input = {
+        'id': int(request.form['id']),
+        'player': request.form['player'],
+        'flag': request.form['player']    # exposed/concealed
+    }
+    output = {
+        'result': 'KONG',
+    }
+
+    board = Board.query.filter_by(id=input['id']).first()
+
+    if board.player_1 == input['player']:
+        player_tiles = board.player_1_tiles.split(',')
+    elif board.player_2 == input['player']:
+        player_tiles = board.player_2_tiles.split(',')
+    elif board.player_3 == input['player']:
+        player_tiles = board.player_3_tiles.split(',')
+    elif board.player_4 == input['player']:
+        player_tiles = board.player_4_tiles.split(',')
+    else:
+        pass
+
+    if player_tiles:
+        if input['flag'] == 'exposed':
+            discard_pile = board.discard_pile.split(',')
+            last = discard_pile.pop()
+            player_tiles.append(last)
+        elif input['flag'] == 'concealed':
+            player_tiles_counter = dict(Counter(player_tiles))
+            kong_candicates = []
+            for tile, count in player_tiles_counter.items():
+                if count == 4:
+                    kong_candicates.append(count)
+            # TODO -1
+            player_tiles.remove(kong_candicates[-1])
+            player_tiles.remove(kong_candicates[-1])
+            player_tiles.remove(kong_candicates[-1])
+            player_tiles.remove(kong_candicates[-1])
+
+    return json.dumps(output)
+
+
+@app.route('/board/chow', methods=['POST'])
+def do_board_chow():
+    input = {
+        'id': int(request.form['id']),
+        'player': request.form['player'],
+    }
+    output = {
+        'result': 'CHOW',
+    }
+
+    board = Board.query.filter_by(id=input['id']).first()
+
+    if board.player_1 == input['player']:
+        player_tiles = board.player_1_tiles.split(',')
+    elif board.player_2 == input['player']:
+        player_tiles = board.player_2_tiles.split(',')
+    elif board.player_3 == input['player']:
+        player_tiles = board.player_3_tiles.split(',')
+    elif board.player_4 == input['player']:
+        player_tiles = board.player_4_tiles.split(',')
+    else:
+        pass
+
+    if player_tiles:
+        discard_pile = board.discard_pile.split(',')
+        last = discard_pile.pop()
+        player_tiles.append(last)
 
     return json.dumps(output)

@@ -178,6 +178,7 @@ def hello_mahjong():
 def do_board():
     input = {
         'id': int(request.form['id']),
+        'player': request.form['player'] if 'player' in request.form else 0,
     }
     output = {}
     board = Board.query.filter_by(id=input['id']).first()
@@ -188,30 +189,47 @@ def do_board():
         else:
             len_card_pile = None
 
-        if board.discard_pile:
-            discard_pile = board.discard_pile.split(',')
-        else:
-            discard_pile = []
-
         players = []
+        player_fixed_tiles = {}
+        player_played_tiles = {}
+        my_tiles = []
         if board.player_1:
             players.append(board.player_1)
+            player_fixed_tiles['player_1'] = board.player_1_fixed_tiles if board.player_1_fixed_tiles else {}
+            player_played_tiles['player_1'] = board.player_1_played_tiles.split(',') if board.player_1_played_tiles else []
+            if board.player_1 == input['player']:
+                my_tiles = board.player_1_tiles
             if board.player_2:
                 players.append(board.player_2)
+                player_fixed_tiles['player_2'] = board.player_2_fixed_tiles if board.player_2_fixed_tiles else {}
+                player_played_tiles['player_2'] = board.player_2_played_tiles.split(',') if board.player_2_played_tiles else []
+                if board.player_2 == input['player']:
+                    my_tiles = board.player_2_tiles
                 if board.player_3:
                     players.append(board.player_3)
+                    player_fixed_tiles['player_3'] = board.player_3_fixed_tiles if board.player_3_fixed_tiles else {}
+                    player_played_tiles['player_3'] = board.player_3_played_tiles.split(',') if board.player_3_played_tiles else []
+                    if board.player_3_tiles == input['player']:
+                        my_tiles = board.player_3_tiles
                     if board.player_4:
                         players.append(board.player_4)
+                        player_fixed_tiles['player_4'] = board.player_4_fixed_tiles if board.player_4_fixed_tiles else {}
+                        player_played_tiles['player_4'] = board.player_4_played_tiles.split(',') if board.player_4_played_tiles else []
+                        if board.player_4 == input['player']:
+                            my_tiles = board.player_4_tiles
 
         output = {
             'total': board.total,
             'number': board.number,
             'len_card_pile': len_card_pile,
-            'discard_pile': discard_pile,
             'banker': board.banker,
             'turn': board.turn,
             'players': players,
+            'player_fixed_tiles': player_fixed_tiles,
+            'player_played_tiles': player_played_tiles,
+            'my_tiles': my_tiles,
         }
+        print(output)
 
     return json.dumps(output)
 
@@ -290,15 +308,16 @@ def do_board_start():
     }
 
     board = Board.query.filter_by(id=input['id']).first()
+    banker = board.banker % 4 + 1 if board.banker else 1
 
     card_pile, discard_pile = shuffle()
-    card_pile, player_tiles = deal(card_pile, board.banker)
+    card_pile, player_tiles = deal(card_pile, banker)
     update_data = {
         'number': board.number + 1,
         'card_pile': ','.join(card_pile),
         'discard_pile': None,
-        'banker': board.banker % 4 + 1,
-        'turn': board.banker % 4 + 1,
+        'banker': banker,
+        'turn': banker,
         'player_1_tiles': ','.join(player_tiles['player_1']),
         'player_2_tiles': ','.join(player_tiles['player_2']),
         'player_3_tiles': ','.join(player_tiles['player_3']),
@@ -372,6 +391,7 @@ def do_board_play():
     for i in range(1, 5):
         if getattr(board, 'player_%s' % i) == input['player']:
             position = i
+            break
     else:
         output['result'] = 'NO SUCH PLAYER'
 
@@ -386,7 +406,7 @@ def do_board_play():
             discard_pile.append(input['tile'])
             update_data = {
                 'player_%s_tiles' % position: ','.join(player_tiles),
-                'player_%s_tiles' % position: ','.join(player_played_tiles),
+                'player_%s_played_tiles' % position: ','.join(player_played_tiles),
                 'discard_pile': ','.join(discard_pile),
             }
             Board.query.filter_by(id=input['id']).update(update_data)
@@ -414,6 +434,7 @@ def do_board_draw():
     for i in range(1, 5):
         if getattr(board, 'player_%s' % i) == input['player']:
             position = i
+            break
     else:
         output['result'] = 'NO SUCH PLAYER'
 

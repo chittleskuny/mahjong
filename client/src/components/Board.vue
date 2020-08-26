@@ -4,26 +4,31 @@
     <el-row id="len_card_pile">len_card_pile: {{ len_card_pile }}</el-row>
     <el-row id="banker">banker: player_{{ banker }}</el-row>
     <el-row id="turn">turn: player_{{ turn }}</el-row>
+    <el-row id="common_buttons">
+      <el-button id="start" @click="startBoard()">START</el-button>
+      <el-button id="restart" @click="restartBoard()">RESTART</el-button>
+      <el-button id="join" @click="joinBoard()">JOIN</el-button>
+    </el-row>
     <el-row>
       <el-col :span="6"><div id="player_1">
         <el-row><el-button id="player_1_id">{{ player_1_id }}</el-button></el-row>
         <el-row><el-button id="player_1_fixed_tiles">{{ player_1_fixed_tiles }}</el-button></el-row>
-        <el-row><el-button id="player_1_played_tiles">{{ player_1_played_tiles }}</el-button></el-row>
+        <el-row><div id="player_1_played_tiles"></div></el-row>
       </div></el-col>
       <el-col :span="6"><div id="player_2">
         <el-row><el-button id="player_2_id">{{ player_2_id }}</el-button></el-row>
         <el-row><el-button id="player_2_fixed_tiles">{{ player_2_fixed_tiles }}</el-button></el-row>
-        <el-row><el-button id="player_2_played_tiles">{{ player_2_played_tiles }}</el-button></el-row>
+        <el-row><div id="player_2_played_tiles"></div></el-row>
       </div></el-col>
       <el-col :span="6"><div id="player_3">
         <el-row><el-button id="player_3_id">{{ player_3_id }}</el-button></el-row>
         <el-row><el-button id="player_3_fixed_tiles">{{ player_3_fixed_tiles }}</el-button></el-row>
-        <el-row><el-button id="player_3_played_tiles">{{ player_3_played_tiles }}</el-button></el-row>
+        <el-row id="player_3_played_tiles"></el-row>
       </div></el-col>
       <el-col :span="6"><div id="player_4">
         <el-row><el-button id="player_4_id">{{ player_4_id }}</el-button></el-row>
         <el-row><el-button id="player_4_fixed_tiles">{{ player_4_fixed_tiles }}</el-button></el-row>
-        <el-row><el-button id="player_4_played_tiles">{{ player_4_played_tiles }}</el-button></el-row>
+        <el-row id="player_4_played_tiles"></el-row>
       </div></el-col>
     </el-row>
     <el-row id="my_tiles">{{ my_tiles }}</el-row>
@@ -51,16 +56,12 @@ export default {
       player_2_fixed_tiles: '',
       player_3_fixed_tiles: '',
       player_4_fixed_tiles: '',
-      player_1_played_tiles: '',
-      player_2_played_tiles: '',
-      player_3_played_tiles: '',
-      player_4_played_tiles: '',
       my_tiles: '',
     }
   },
   methods: {
     getBoard() {
-      let data = { 'id': '1' }
+      let data = { 'id': '1', 'player': '12345678901' }
       axios
       .post('/board', qs.stringify(data))
       .then(res => {
@@ -74,20 +75,119 @@ export default {
         this.player_2_id = res.data.players[1]
         this.player_3_id = res.data.players[2]
         this.player_4_id = res.data.players[3]
-        this.player_1_fixed_tiles = res.data.player_fixed_tiles.player_1.toString()
-        this.player_2_fixed_tiles = res.data.player_fixed_tiles.player_2.toString()
-        this.player_3_fixed_tiles = res.data.player_fixed_tiles.player_3.toString()
-        this.player_4_fixed_tiles = res.data.player_fixed_tiles.player_4.toString()
-        this.player_1_played_tiles = res.data.player_played_tiles.player_1.toString()
-        this.player_2_played_tiles = res.data.player_played_tiles.player_2.toString()
-        this.player_3_played_tiles = res.data.player_played_tiles.player_3.toString()
-        this.player_4_played_tiles = res.data.player_played_tiles.player_4.toString()
-        this.my_tiles = res.data.my_tiles.toString()
+
+        this.player_1_fixed_tiles = Array(
+          res.data.player_fixed_tiles.player_1.pong,
+          res.data.player_fixed_tiles.player_1.exposed_kong,
+          res.data.player_fixed_tiles.player_1.concealed_pong,
+          res.data.player_fixed_tiles.player_1.chow,
+        )
+        this.player_2_fixed_tiles = Array(
+          res.data.player_fixed_tiles.player_2.pong,
+          res.data.player_fixed_tiles.player_2.exposed_kong,
+          res.data.player_fixed_tiles.player_2.concealed_pong,
+          res.data.player_fixed_tiles.player_2.chow,
+        )
+        this.player_3_fixed_tiles = Array(
+          res.data.player_fixed_tiles.player_3.pong,
+          res.data.player_fixed_tiles.player_3.exposed_kong,
+          res.data.player_fixed_tiles.player_3.concealed_pong,
+          res.data.player_fixed_tiles.player_3.chow,
+        )
+        this.player_4_fixed_tiles = Array(
+          res.data.player_fixed_tiles.player_4.pong,
+          res.data.player_fixed_tiles.player_4.exposed_kong,
+          res.data.player_fixed_tiles.player_4.concealed_pong,
+          res.data.player_fixed_tiles.player_4.chow,
+        )
+
+        var data = res.data.player_played_tiles.player_1
+        var player_1_played_tiles = document.getElementById('player_1_played_tiles')
+        for(var i = 0; i < data.length; i++) {
+          var button = document.createElement('button')
+          button.setAttribute('class', 'el-button el-button--default')
+          button.appendChild(document.createTextNode(data[i]))
+          player_1_played_tiles.appendChild(button)
+        }
+        var data = res.data.player_played_tiles.player_2
+        var player_2_played_tiles = document.getElementById('player_2_played_tiles')
+        for(var i = 0; i < data.length; i++) {
+          var button = document.createElement('button')
+          button.setAttribute('class', 'el-button el-button--default')
+          button.appendChild(document.createTextNode(data[i]))
+          player_2_played_tiles.appendChild(button)
+        }
+        var data = res.data.player_played_tiles.player_3
+        var player_3_played_tiles = document.getElementById('player_3_played_tiles')
+        for(var i = 0; i < data.length; i++) {
+          var button = document.createElement('button')
+          button.setAttribute('class', 'el-button el-button--default')
+          button.appendChild(document.createTextNode(data[i]))
+          player_3_played_tiles.appendChild(button)
+        }
+        var data = res.data.player_played_tiles.player_4
+        var player_4_played_tiles = document.getElementById('player_4_played_tiles')
+        for(var i = 0; i < data.length; i++) {
+          var button = document.createElement('button')
+          button.setAttribute('class', 'el-button el-button--default')
+          button.appendChild(document.createTextNode(data[i]))
+          player_4_played_tiles.appendChild(button)
+        }
+
+        var data = res.data.my_tiles
+        var my_tiles = document.getElementById('my_tiles')
+        for(var i = 0; i < data.length; i++) {
+          var button = document.createElement('button')
+          button.setAttribute('class', 'el-button el-button--success')
+          button.appendChild(document.createTextNode(data[i]))
+          my_tiles.appendChild(button)
+        }
       })
       .catch(error => {
           console.error(error)
       })
-    }
+    },
+    startBoard() {
+      let data = { 'id': '1' }
+      axios
+      .post('/board/start', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+          console.error(error)
+      })
+    },
+    restartBoard() {
+      let data = { 'id': '1' }
+      axios
+      .post('/board/restart', qs.stringify(data))
+      .then(res => {
+        this.$router.go(0)
+      })
+      .catch(error => {
+          console.error(error)
+      })
+    },
+    joinBoard() {
+      let data = { 'id': '1', 'slave': '12345678902' }
+      axios
+      .post('/board/join', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+          console.error(error)
+      })
+    },
+    playBoard(tile) {
+      let data = { 'id': '1', 'player': '12345678901', 'tile': tile }
+      axios
+      .post('/board/play', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+          console.error(error)
+      })
+    },
   },
   created() {
     this.getBoard()

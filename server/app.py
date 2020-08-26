@@ -195,28 +195,28 @@ def do_board():
         my_tiles = []
         if board.player_1:
             players.append(board.player_1)
-            player_fixed_tiles['player_1'] = board.player_1_fixed_tiles if board.player_1_fixed_tiles else {}
+            player_fixed_tiles['player_1'] = json.loads(board.player_1_fixed_tiles) if board.player_1_fixed_tiles else {}
             player_played_tiles['player_1'] = board.player_1_played_tiles.split(',') if board.player_1_played_tiles else []
             if board.player_1 == input['player']:
-                my_tiles = board.player_1_tiles
+                my_tiles = board.player_1_tiles.split(',')
             if board.player_2:
                 players.append(board.player_2)
-                player_fixed_tiles['player_2'] = board.player_2_fixed_tiles if board.player_2_fixed_tiles else {}
+                player_fixed_tiles['player_2'] = json.loads(board.player_2_fixed_tiles) if board.player_2_fixed_tiles else {}
                 player_played_tiles['player_2'] = board.player_2_played_tiles.split(',') if board.player_2_played_tiles else []
                 if board.player_2 == input['player']:
-                    my_tiles = board.player_2_tiles
+                    my_tiles = board.player_2_tiles.split(',')
                 if board.player_3:
                     players.append(board.player_3)
-                    player_fixed_tiles['player_3'] = board.player_3_fixed_tiles if board.player_3_fixed_tiles else {}
+                    player_fixed_tiles['player_3'] = json.loads(board.player_3_fixed_tiles) if board.player_3_fixed_tiles else {}
                     player_played_tiles['player_3'] = board.player_3_played_tiles.split(',') if board.player_3_played_tiles else []
                     if board.player_3_tiles == input['player']:
-                        my_tiles = board.player_3_tiles
+                        my_tiles = board.player_3_tiles.split(',')
                     if board.player_4:
                         players.append(board.player_4)
-                        player_fixed_tiles['player_4'] = board.player_4_fixed_tiles if board.player_4_fixed_tiles else {}
+                        player_fixed_tiles['player_4'] = json.loads(board.player_4_fixed_tiles) if board.player_4_fixed_tiles else {}
                         player_played_tiles['player_4'] = board.player_4_played_tiles.split(',') if board.player_4_played_tiles else []
                         if board.player_4 == input['player']:
-                            my_tiles = board.player_4_tiles
+                            my_tiles = board.player_4_tiles.split(',')
 
         output = {
             'total': board.total,
@@ -350,6 +350,7 @@ def do_board_restart():
 
     card_pile, discard_pile = shuffle()
     card_pile, player_tiles = deal(card_pile, board.banker)
+    init_fixed_tiles = { 'pong': [], 'exposed_kong': [], 'concealed_kong': [], 'chow': [], }
     update_data = {
         'number': board.number,
         'card_pile': ','.join(card_pile),
@@ -359,10 +360,10 @@ def do_board_restart():
         'player_2_tiles': ','.join(player_tiles['player_2']),
         'player_3_tiles': ','.join(player_tiles['player_3']),
         'player_4_tiles': ','.join(player_tiles['player_4']),
-        'player_1_fixed_tiles': json.dumps({}),
-        'player_2_fixed_tiles': json.dumps({}),
-        'player_3_fixed_tiles': json.dumps({}),
-        'player_4_fixed_tiles': json.dumps({}),
+        'player_1_fixed_tiles': json.dumps(init_fixed_tiles),
+        'player_2_fixed_tiles': json.dumps(init_fixed_tiles),
+        'player_3_fixed_tiles': json.dumps(init_fixed_tiles),
+        'player_4_fixed_tiles': json.dumps(init_fixed_tiles),
         'player_1_played_tiles': None,
         'player_2_played_tiles': None,
         'player_3_played_tiles': None,

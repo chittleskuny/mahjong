@@ -31,6 +31,13 @@
         <el-row id="player_4_played_tiles"></el-row>
       </div></el-col>
     </el-row>
+    <el-row id="my_buttons">
+      <el-button id="pong" type="warning" @click="pong()">碰</el-button>
+      <el-button id="kong" type="warning" @click="kong()">杠</el-button>
+      <el-button id="chew" type="warning" @click="chew()">吃</el-button>
+      <el-button id="draw" type="primary" @click="draw()">摸</el-button>
+      <el-button id="win" type="danger" @click="win()">和</el-button>
+    </el-row>
     <el-row id="my_tiles">{{ my_tiles }}</el-row>
   </div>
 </template>
@@ -38,6 +45,20 @@
 <script>
 import axios from 'axios'
 import qs from 'qs'
+
+
+function play(tile) {
+  let data = { 'id': '1', 'player': '12345678901', 'tile': tile }
+  axios
+  .post('/board/play', qs.stringify(data))
+  .then(res => {
+      location.reload()
+  })
+  .catch(error => {
+      console.error(error)
+  })
+}
+
 
 export default {
   name: 'Board',
@@ -140,6 +161,7 @@ export default {
           var button = document.createElement('button')
           button.setAttribute('class', 'el-button el-button--success')
           button.appendChild(document.createTextNode(data[i]))
+          button.onclick = function() { return play(this.innerHTML) }
           my_tiles.appendChild(button)
         }
       })
@@ -178,15 +200,15 @@ export default {
           console.error(error)
       })
     },
-    playBoard(tile) {
-      let data = { 'id': '1', 'player': '12345678901', 'tile': tile }
-      axios
-      .post('/board/play', qs.stringify(data))
-      .then(res => {
-      })
-      .catch(error => {
-          console.error(error)
-      })
+    pong() {
+    },
+    kong() {
+    },
+    chew() {
+    },
+    draw() {
+    },
+    win() {
     },
   },
   created() {

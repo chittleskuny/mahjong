@@ -24,6 +24,10 @@ fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
 
+def check_pair(pair):
+    return pair[0] == pair[1]
+
+
 def check_meld(meld):
     meld_0, meld_1, meld_2 = int(meld[0]), int(meld[1]), int(meld[2])
     delta_01 = meld_1 - meld_0
@@ -69,25 +73,58 @@ def combine(rest):
     return to_return
 
 
+def check_333(mydb, mycursor, tiles_list, tiles_str):
+    c = combine(tiles_list)
+    if c:
+        for m in c:
+            m_str_list = []
+            for i_m in m:
+                m_str_list.append(''.join(i_m))
+            m_str = ','.join(m_str_list)
+            logging.debug(tiles_str + ' > ' + m_str)
+            sql = "insert into mahjong.tiles_combinations_333(tiles, combinations) values ('%s', '%s');" % (tiles_str, m_str)
+            mycursor.execute(sql)
+            mydb.commit()
+
+
+def check_233(mydb, mycursor, tiles_list, tiles_str):
+    s = set(combinations(tiles_list, 2))
+    for i_s in s:
+        if not check_pair(i_s):
+            continue
+
+        rest_copy = tiles_list.copy()
+        rest_copy.remove(i_s[0])
+        rest_copy.remove(i_s[1])
+
+        if rest_copy:
+            c = combine(rest_copy)
+            if c:
+                for m in c:
+                    m_str_list = ['%s%s' % (i_s[0], i_s[1])]
+                    for i_m in m:
+                        m_str_list.append(''.join(i_m))
+                    m_str = ','.join(m_str_list)
+                    logging.debug(tiles_str + ' > ' + m_str)
+                    sql = "insert into mahjong.tiles_combinations_233(tiles, combinations) values ('%s', '%s');" % (tiles_str, m_str)
+                    mycursor.execute(sql)
+                    mydb.commit()
+
+
 def do_tiles(min_length, max_length, remainder):
-    mydb = mysql.connector.connect(host="localhost", port=3306, user="root", passwd="root", database="mahjong")
+    mydb = mysql.connector.connect(host='localhost', port=3306, user='root', passwd='root', database='mahjong')
     mycursor = mydb.cursor()
 
     all_tiles = generate_all_list(min_length, max_length, remainder)
     for tiles in all_tiles:
         tiles_list = list(map(str, tiles))
         tiles_str = ''.join(tiles_list)
-        c = combine(tiles_list)
-        if c:
-            for m in c:
-                m_str_list = []
-                for i_m in m:
-                    m_str_list.append(''.join(i_m))
-                m_str = ','.join(m_str_list)
-                logging.debug(tiles_str + ' > ' + m_str)
-                sql = "insert into mahjong.tiles_combinations_333(tiles, combinations) values ('%s', '%s');" % (tiles_str, m_str)
-                mycursor.execute(sql)
-                mydb.commit()
+        if remainder == 0:
+            check_333(mydb, mycursor, tiles_list, tiles_str)
+        elif remainder == 1:
+            pass
+        else:
+            check_233(mydb, mycursor, tiles_list, tiles_str)
 
 
 def generate_all_list(min_length, max_length, remainder):
@@ -142,6 +179,6 @@ def generate_all_list(min_length, max_length, remainder):
 
 if __name__ == '__main__':
     start = time.time()
-    do_tiles(1, 9, 0)
+    do_tiles(1, 9, 2)
     stop = time.time()
     print(stop - start)

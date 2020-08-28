@@ -24,19 +24,40 @@ fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
 
+def check_meld(meld):
+    meld_0, meld_1, meld_2 = int(meld[0]), int(meld[1]), int(meld[2])
+    delta_01 = meld_1 - meld_0
+    delta_12 = meld_2 - meld_1
+    if delta_01 != delta_12 or delta_01 > 1:
+        return False
+    else:
+        return True
+
+
 def combine(rest):
     to_return = []
     if len(rest) == 3:
-        to_return.append([tuple(rest)])
+        r = tuple(rest)
+        if not check_meld(r):
+            return None
+        else:
+            to_return.append([r])
     else:
         s = set(combinations(rest, 3))
         for i_s in s:
+            if not check_meld(i_s):
+                continue
+
             meld_0, meld_1, meld_2 = int(i_s[0]), int(i_s[1]), int(i_s[2])
+
             rest_copy = rest.copy()
             rest_copy.remove(i_s[0])
             rest_copy.remove(i_s[1])
             rest_copy.remove(i_s[2])
             s_rest = combine(rest_copy)
+            if not s_rest:
+                return None
+
             for i_s_rest in s_rest:
                 first_meld = i_s_rest[0]
                 rest_meld_0, rest_meld_1, rest_meld_2 = int(first_meld[0]), int(first_meld[1]), int(first_meld[2])
@@ -48,46 +69,28 @@ def combine(rest):
     return to_return
 
 
-def check_333(melds):
-    for meld in melds:
-        meld_0, meld_1, meld_2 = int(meld[0]), int(meld[1]), int(meld[2])
-        delta_01 = meld_1 - meld_0
-        delta_12 = meld_2 - meld_1
-        if delta_01 != delta_12 or delta_01 > 1:
-            return False
-    return True
-
-
-def do_tiles_win_333():
+def do_tiles(min_length, max_length, remainder):
     mydb = mysql.connector.connect(host="localhost", port=3306, user="root", passwd="root", database="mahjong")
     mycursor = mydb.cursor()
 
-    sql = "select tiles from mahjong.tiles_win_333 where length(tiles) = 12;"
-    logging.debug(sql)
-    mycursor.execute(sql)
-
-    all_tiles = mycursor.fetchall()
+    all_tiles = generate_all_list(min_length, max_length, remainder)
     for tiles in all_tiles:
-        tiles_str = tiles[0]
-        tiles_list = list(tiles_str)
+        tiles_list = list(map(str, tiles))
+        tiles_str = ''.join(tiles_list)
         c = combine(tiles_list)
-        for m in c:
-            m_str_list = []
-            for i_m in m:
-                m_str_list.append(''.join(i_m))
-            m_str = ','.join(m_str_list)
-            if check_333(m):
-                logging.debug(tiles_str + ' + ' + m_str)
-                sql = "update mahjong.tiles_win_333 set win = 1 where tiles = '%s';" % tiles_str
-                mycursor.execute(sql)
-                sql = "insert into mahjong.tiles_win_combinations_333(tiles, combinations) values ('%s', '%s');" % (tiles_str, m_str)
+        if c:
+            for m in c:
+                m_str_list = []
+                for i_m in m:
+                    m_str_list.append(''.join(i_m))
+                m_str = ','.join(m_str_list)
+                logging.debug(tiles_str + ' > ' + m_str)
+                sql = "insert into mahjong.tiles_combinations_333(tiles, combinations) values ('%s', '%s');" % (tiles_str, m_str)
                 mycursor.execute(sql)
                 mydb.commit()
-            else:
-                logging.debug(tiles_str + ' - ' + m_str)
 
 
-def generate_all_list():
+def generate_all_list(min_length, max_length, remainder):
     all_list = []
     cur_dict = {}
     for i_1 in range(5):
@@ -130,37 +133,15 @@ def generate_all_list():
                                         cur_list = cur_dict['1'] + cur_dict['2'] + cur_dict['3'] + cur_dict['4'] + cur_dict['5'] + cur_dict['6'] + cur_dict['7'] + cur_dict['8'] + cur_dict['9']
                                         # logging.debug(cur_list)
 
-                                        if 1 <= len(cur_list) and len(cur_list) <= 32:
+                                        if min_length <= len(cur_list) and len(cur_list) <= max_length and len(cur_list) % 3 == remainder:
                                             all_list.append(cur_list)
 
     all_list.sort()
-    print(len(all_list))
-
-    mydb = mysql.connector.connect(host='localhost', port=3306, user='root', passwd='root', database='mahjong')
-    mycursor = mydb.cursor()
-
-    for cur_list in all_list:
-        # logging.debug(cur_list)
-        value = ''.join(list(map(str, cur_list)))
-        # logging.debug(value)
-        if len(cur_list) % 3 == 2:
-            pass
-        elif len(cur_list) % 3 == 1:
-            pass
-        else:
-            table = 'tiles_win_333'
-            sql = "insert into %s(tiles) values ('%s');" % (table, value)
-            logging.debug(sql)
-            mycursor.execute(sql)
-
-    mydb.commit()
+    return all_list
 
 
 if __name__ == '__main__':
     start = time.time()
-
-    # generate_all_list()
-    do_tiles_win_333()
-
+    do_tiles(1, 9, 0)
     stop = time.time()
     print(stop - start)

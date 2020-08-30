@@ -109,6 +109,11 @@ def check_233(mydb, mycursor, tiles_list, tiles_str):
                     sql = "insert into mahjong.tiles_combinations_233(tiles, combinations) values ('%s', '%s');" % (tiles_str, m_str)
                     mycursor.execute(sql)
                     mydb.commit()
+        else:
+            logging.debug(tiles_str + ' > ' + tiles_str)
+            sql = "insert into mahjong.tiles_combinations_233(tiles, combinations) values ('%s', '%s');" % (tiles_str, tiles_str)
+            mycursor.execute(sql)
+            mydb.commit()
 
 
 def do_tiles(min_length, max_length, remainder):

@@ -48,7 +48,7 @@ import qs from 'qs'
 
 
 function play(tile) {
-  let data = { 'id': '1', 'player': '12345678901', 'tile': tile }
+  let data = { 'id': '1', 'player': localStorage['id'], 'tile': tile }
   axios
   .post('/board/play', qs.stringify(data))
   .then(res => {
@@ -82,7 +82,7 @@ export default {
   },
   methods: {
     getBoard() {
-      let data = { 'id': '1', 'player': '12345678901' }
+      let data = { 'id': '1', 'player': localStorage['id'] }
       axios
       .post('/board', qs.stringify(data))
       .then(res => {
@@ -191,7 +191,7 @@ export default {
       })
     },
     joinBoard() {
-      let data = { 'id': '1', 'slave': '12345678902' }
+      let data = { 'id': '1', 'slave': localStorage['id'] }
       axios
       .post('/board/join', qs.stringify(data))
       .then(res => {

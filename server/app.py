@@ -169,9 +169,17 @@ def check_win(player_tiles):
     return check_win_with_pair_candicates(pair_candicates, collector, joker_count)
 
 
-@app.route('/')
-def hello_mahjong():
-    return 'Hello, Mahjong!'
+@app.route('/login', methods=['GET', 'POST'])
+def do_login():
+    input = {
+        'id': int(request.form['id']),
+    }
+    output = {
+        'board': 1,
+    }
+    print('[INPUT]  ' + str(input))
+    print('[OUTPUT] ' + str(output))
+    return json.dumps(output)
 
 
 @app.route('/board', methods=['GET', 'POST'])
@@ -181,6 +189,8 @@ def do_board():
         'player': request.form['player'] if 'player' in request.form else 0,
     }
     output = {}
+    print('[INPUT]  ' + str(input))
+
     board = Board.query.filter_by(id=input['id']).first()
     if board:
         if board.card_pile:
@@ -209,7 +219,7 @@ def do_board():
                     players.append(board.player_3)
                     player_fixed_tiles['player_3'] = json.loads(board.player_3_fixed_tiles) if board.player_3_fixed_tiles else {}
                     player_played_tiles['player_3'] = board.player_3_played_tiles.split(',') if board.player_3_played_tiles else []
-                    if board.player_3_tiles == input['player']:
+                    if board.player_3 == input['player']:
                         my_tiles = board.player_3_tiles.split(',')
                     if board.player_4:
                         players.append(board.player_4)
@@ -229,8 +239,8 @@ def do_board():
             'player_played_tiles': player_played_tiles,
             'my_tiles': my_tiles,
         }
-        print(output)
 
+    print('[OUTPUT] ' + str(output))
     return json.dumps(output)
 
 

@@ -71,7 +71,7 @@ def deal(card_pile, banker):
         ['player_3', 'player_4', 'player_2', 'player_1'],
         ['player_4', 'player_1', 'player_2', 'player_3'],
     ]
-    circle = circle_map[banker]
+    circle = circle_map[banker - 1]
     start = 0
     for player in circle:
         player_tiles[player] = card_pile[start:(start + 16)]
@@ -360,7 +360,7 @@ def do_board_restart():
 
     card_pile, discard_pile = shuffle()
     card_pile, player_tiles = deal(card_pile, board.banker)
-    init_fixed_tiles = { 'pong': [], 'exposed_kong': [], 'concealed_kong': [], 'chow': [], }
+    init_fixed_tiles = { 'pong': [], 'exposed_kong': [], 'concealed_kong': [], 'chew': [], }
     update_data = {
         'number': board.number,
         'card_pile': ','.join(card_pile),
@@ -546,7 +546,6 @@ def do_board_kong():
     input = {
         'id': int(request.form['id']),
         'player': request.form['player'],
-        'flag': request.form['player']    # exposed/concealed
     }
     output = {
         'result': 'KONG',
@@ -575,7 +574,7 @@ def do_board_kong():
         pass
 
     if position:
-        if input['flag'] == 'exposed':
+        if position != board.turn:    # 'exposed'
             discard_pile = board.discard_pile.split(',')
             last = discard_pile.pop()
             player_tiles.remove(last)
@@ -591,7 +590,7 @@ def do_board_kong():
                 'player_%d_fixed_tiles' % position: player_fixed_tiles,
             }
 
-        elif input['flag'] == 'concealed':
+        else:    # 'concealed'
             player_tiles_counter = dict(Counter(player_tiles))
             kong_candicates = []
             for tile, count in player_tiles_counter.items():
@@ -618,14 +617,14 @@ def do_board_kong():
     return json.dumps(output)
 
 
-@app.route('/board/chow', methods=['POST'])
-def do_board_chow():
+@app.route('/board/chew', methods=['POST'])
+def do_board_chew():
     input = {
         'id': int(request.form['id']),
         'player': request.form['player'],
     }
     output = {
-        'result': 'CHOW',
+        'result': 'CHEW',
     }
 
     board = Board.query.filter_by(id=input['id']).first()

@@ -52,10 +52,10 @@ function play(tile) {
   axios
   .post('/board/play', qs.stringify(data))
   .then(res => {
-      location.reload()
+    location.reload()
   })
   .catch(error => {
-      console.error(error)
+    console.error(error)
   })
 }
 
@@ -97,62 +97,22 @@ export default {
         this.player_3_id = res.data.players[2]
         this.player_4_id = res.data.players[3]
 
-        this.player_1_fixed_tiles = Array(
-          res.data.player_fixed_tiles.player_1.pong,
-          res.data.player_fixed_tiles.player_1.exposed_kong,
-          res.data.player_fixed_tiles.player_1.concealed_pong,
-          res.data.player_fixed_tiles.player_1.chow,
-        )
-        this.player_2_fixed_tiles = Array(
-          res.data.player_fixed_tiles.player_2.pong,
-          res.data.player_fixed_tiles.player_2.exposed_kong,
-          res.data.player_fixed_tiles.player_2.concealed_pong,
-          res.data.player_fixed_tiles.player_2.chow,
-        )
-        this.player_3_fixed_tiles = Array(
-          res.data.player_fixed_tiles.player_3.pong,
-          res.data.player_fixed_tiles.player_3.exposed_kong,
-          res.data.player_fixed_tiles.player_3.concealed_pong,
-          res.data.player_fixed_tiles.player_3.chow,
-        )
-        this.player_4_fixed_tiles = Array(
-          res.data.player_fixed_tiles.player_4.pong,
-          res.data.player_fixed_tiles.player_4.exposed_kong,
-          res.data.player_fixed_tiles.player_4.concealed_pong,
-          res.data.player_fixed_tiles.player_4.chow,
-        )
-
-        var data = res.data.player_played_tiles.player_1
-        var player_1_played_tiles = document.getElementById('player_1_played_tiles')
-        for(var i = 0; i < data.length; i++) {
-          var button = document.createElement('button')
-          button.setAttribute('class', 'el-button el-button--default')
-          button.appendChild(document.createTextNode(data[i]))
-          player_1_played_tiles.appendChild(button)
-        }
-        var data = res.data.player_played_tiles.player_2
-        var player_2_played_tiles = document.getElementById('player_2_played_tiles')
-        for(var i = 0; i < data.length; i++) {
-          var button = document.createElement('button')
-          button.setAttribute('class', 'el-button el-button--default')
-          button.appendChild(document.createTextNode(data[i]))
-          player_2_played_tiles.appendChild(button)
-        }
-        var data = res.data.player_played_tiles.player_3
-        var player_3_played_tiles = document.getElementById('player_3_played_tiles')
-        for(var i = 0; i < data.length; i++) {
-          var button = document.createElement('button')
-          button.setAttribute('class', 'el-button el-button--default')
-          button.appendChild(document.createTextNode(data[i]))
-          player_3_played_tiles.appendChild(button)
-        }
-        var data = res.data.player_played_tiles.player_4
-        var player_4_played_tiles = document.getElementById('player_4_played_tiles')
-        for(var i = 0; i < data.length; i++) {
-          var button = document.createElement('button')
-          button.setAttribute('class', 'el-button el-button--default')
-          button.appendChild(document.createTextNode(data[i]))
-          player_4_played_tiles.appendChild(button)
+        var players = { 'player_1': 0, 'player_2': 0, 'player_3': 0, 'player_4': 0 }
+        for (var player in players) {
+          this[player + "_fixed_tiles"] = Array(
+            res.data.player_fixed_tiles[player].pong,
+            res.data.player_fixed_tiles[player].exposed_kong,
+            res.data.player_fixed_tiles[player].concealed_pong,
+            res.data.player_fixed_tiles[player].chew,
+          )
+          var data = res.data.player_played_tiles[player]
+          var played_tiles = document.getElementById(player + '_played_tiles')
+          for(var i = 0; i < data.length; i++) {
+            var button = document.createElement('button')
+            button.setAttribute('class', 'el-button el-button--default')
+            button.appendChild(document.createTextNode(data[i]))
+            played_tiles.appendChild(button)
+          }
         }
 
         var data = res.data.my_tiles
@@ -166,7 +126,7 @@ export default {
         }
       })
       .catch(error => {
-          console.error(error)
+        console.error(error)
       })
     },
     startBoard() {
@@ -176,7 +136,7 @@ export default {
       .then(res => {
       })
       .catch(error => {
-          console.error(error)
+        console.error(error)
       })
     },
     restartBoard() {
@@ -187,7 +147,7 @@ export default {
         this.$router.go(0)
       })
       .catch(error => {
-          console.error(error)
+        console.error(error)
       })
     },
     joinBoard() {
@@ -197,18 +157,58 @@ export default {
       .then(res => {
       })
       .catch(error => {
-          console.error(error)
+        console.error(error)
       })
     },
     pong() {
+      let data = { 'id': '1', 'slave': localStorage['id'] }
+      axios
+      .post('/board/pong', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+        console.error(error)
+      })
     },
     kong() {
+      let data = { 'id': '1', 'player': localStorage['id'] }
+      axios
+      .post('/board/kong', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+        console.error(error)
+      })
     },
     chew() {
+      let data = { 'id': '1', 'player': localStorage['id'] }
+      axios
+      .post('/board/chew', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+        console.error(error)
+      })
     },
     draw() {
+      let data = { 'id': '1', 'player': localStorage['id'] }
+      axios
+      .post('/board/draw', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+        console.error(error)
+      })
     },
     win() {
+      let data = { 'id': '1', 'player': localStorage['id'] }
+      axios
+      .post('/board/win', qs.stringify(data))
+      .then(res => {
+      })
+      .catch(error => {
+        console.error(error)
+      })
     },
   },
   created() {

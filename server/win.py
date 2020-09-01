@@ -184,6 +184,7 @@ def generate_all_list(min_length, max_length, remainder):
 
 if __name__ == '__main__':
     start = time.time()
-    do_tiles(1, 9, 2)
+    do_tiles(3, 12, 0)
+    do_tiles(2, 14, 2)
     stop = time.time()
     print(stop - start)

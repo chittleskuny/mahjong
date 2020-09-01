@@ -1,5 +1,8 @@
 import json
 import random
+
+import mysql.connector
+
 from collections import Counter
 
 from flask import Flask, request
@@ -94,71 +97,33 @@ def flower(tiles):
     return normals, flowers
 
 
-def check_meld(meld_0, meld_1, meld_2, meld_3=None):
-    if (meld_0 == meld_1 and meld_1 == meld_2) or (meld_0 == meld_1 -1 and meld_1 == meld_2 - 1):
-        return True
+def check_333(mycursor, tiles):
+    sql = "select combinations from mahjong.tiles_combinations_333 where tiles = '%s';" % tiles
+    mycursor.execute(sql)
+    combinations = mycursor.fetchall()
+    print(combinations)
+    if len(combinations) > 0:
+        return True, combinations
     else:
-        return False
+        return False, None
 
 
-def check_type_ranks(pair, type, ranks, joker_count=0):
-    # delete pair
-    if type in ('season', 'gentleman'):
-        return True, joker_count
-    elif type in ('wind', 'dragon'):
-        return True, joker_count
+def check_233(mycursor, tiles):
+    sql = "select combinations from mahjong.tiles_combinations_233 where tiles = '%s';" % tiles
+
+    mycursor.execute(sql)
+    combinations = mycursor.fetchall()
+    print(combinations)
+    if len(combinations) > 0:
+        return True, combinations
     else:
-        while ranks and len(ranks) >= 3:
-            meld_0 = int(ranks.pop())
-            meld_1 = int(ranks.pop())
-            meld_2 = int(ranks.pop())
-            if check_meld(meld_0, meld_1, meld_2):
-                continue
-            elif joker_count > 0:
-                joker_count = joker_count - 1
-            else:
-                return False, joker_count
-        return True, joker_count
+        return False, None
 
 
-def check_win_with_pair(pair, collector, joker_count):
-    for type, ranks in collector.items():
-        result, joker_count = check_type_ranks(pair, type, ranks, joker_count)
-        if result or joker_count > 0:
-            continue
-        else:
-            return False
-    return True
-
-
-def check_win_with_pair_candicates(pair_candicates, collector, joker_count):
-    for pair in pair_candicates:
-        if pair[0] == 'joker' and pair[1] == 'joker':
-            local_joker_count = joker_count - 2
-            # delele none
-            if check_win_with_pair(pair, collector, joker_count):
-                return True
-        elif pair[0] == 'joker' or pair[1] == 'joker':
-            local_joker_count = joker_count - 1
-            # delete one
-            if check_win_with_pair(pair, collector, joker_count):
-                return True
-        else:
-            local_joker_count = joker_count - 0
-            # delete two
-            if check_win_with_pair(pair, collector, joker_count):
-                return True
-
-
-def check_win(player_tiles):
+def check(player_tiles):
     collector = {
-        'season': [],
-        'gentleman': [],
-        'wind': [],
-        'dragon': [],
-        'dot': [],
-        'bamboo': [],
-        'character': [],
+        'season': [], 'gentleman': [], 'wind': [], 'dragon': [],    # flowers
+        'dot': [], 'bamboo': [], 'character': [],    # normals
     }
 
     joker_count = 0
@@ -169,16 +134,38 @@ def check_win(player_tiles):
             type, rank = tile.split('_')
             collector[type].append(rank)
 
-    pair_candicates = []
-    for type, ranks in collector.items():
-        rank_counter = dict(Counter(ranks))
-        for rank, count in rank_counter.items():
-            if count >= 2:
-                pair_candicates.append(['%s_%s' % (type, rank), '%s_%s' % (type, rank)])
-        ranks.sort()
-        ranks.reverse()
+    mydb = mysql.connector.connect(host='localhost', port=3306, user='root', passwd='root', database='mahjong')
+    mycursor = mydb.cursor()
+    if joker_count == 0:
+        r_dot, r_bamboo, r_character = len(collector['dot']) % 3, len(collector['bamboo']) % 3, len(collector['character']) % 3
+        remainders = [str(r_dot), str(r_bamboo), str(r_character)]
+        remainders.sort()
+        if ''.join(remainders) != '002':
+            return False
 
-    return check_win_with_pair_candicates(pair_candicates, collector, joker_count)
+        f_dot, f_bamboo, f_character = False, False, False
+        collector['dot'].sort()
+        collector['bamboo'].sort()
+        collector['character'].sort()
+        t_dot, t_bamboo, t_character = ''.join(collector['dot']), ''.join(collector['bamboo']), ''.join(collector['character'])
+        if r_dot == 0:
+            f_dot, c_dot = check_333(mycursor, t_dot)
+        else:
+            f_dot, c_dot = check_233(mycursor, t_dot)
+        if r_bamboo == 0:
+            f_bamboo, c_bamboo = check_333(mycursor, t_bamboo)
+        else:
+            f_bamboo, c_bamboo = check_233(mycursor, t_bamboo)
+        if r_character == 0:
+            f_character, c_character = check_333(mycursor, t_character)
+        else:
+            f_character, c_character = check_233(mycursor, t_character)
+        if f_dot and f_bamboo and f_character:
+            return True
+        else:
+            return False
+    else:
+        return False
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -462,22 +449,23 @@ def do_board_draw():
         output['result'] = 'NO SUCH PLAYER'
 
     if position:
-        player_tiles = getattr(board, 'player_%s_tiles' % position).split(',')
-        normals, flowers = flower(player_tiles)
         card_pile = board.card_pile.split(',') if board.card_pile else []
+
+        player_tiles = getattr(board, 'player_%s_tiles' % position).split(',')
+        player_fixed_tiles = json.loads(getattr(board, 'player_%s_fixed_tiles' % position))
+
+        normals, flowers = flower(player_tiles)
         if flowers:
-            player_fixed_tiles = json.loads(getattr(board, 'player_%s_fixed_tiles' % position))
-            print(type(player_fixed_tiles))
             player_tiles = normals
-            print(flowers)
             for f in flowers:
-                print(player_fixed_tiles['flower'])
                 player_fixed_tiles['flower'].append(f)
                 output['tile'] = card_pile.pop()
                 player_tiles.append(output['tile'])
         else:
             output['tile'] = card_pile.pop()
             player_tiles.append(output['tile'])
+        player_tiles.sort()
+        player_fixed_tiles['flower'].sort()
 
         update_data = {
             'player_%s_tiles' % position: ','.join(player_tiles),
@@ -497,7 +485,7 @@ def do_board_win():
         'player': request.form['player'],
     }
     output = {
-        'result': 'WIN',
+        'result': False,
     }
 
     board = Board.query.filter_by(id=input['id']).first()
@@ -514,7 +502,7 @@ def do_board_win():
         output['result'] = 'NO SUCH PLAYER'
 
     if player_tiles:
-        output['result'] = check_win(player_tiles)
+        output['result'] = check(player_tiles)
 
     return json.dumps(output)
 

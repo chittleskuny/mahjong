@@ -82,6 +82,18 @@ def deal(card_pile, banker):
     return card_pile, player_tiles
 
 
+def flower(tiles):
+    normals = []
+    flowers = []
+    for tile in tiles:
+        type, rank = tile.split('_')
+        if type in ('dot', 'bamboo', 'character'):
+            normals.append(tile)
+        else:
+            flowers.append(tile)
+    return normals, flowers
+
+
 def check_meld(meld_0, meld_1, meld_2, meld_3=None):
     if (meld_0 == meld_1 and meld_1 == meld_2) or (meld_0 == meld_1 -1 and meld_1 == meld_2 - 1):
         return True
@@ -360,7 +372,7 @@ def do_board_restart():
 
     card_pile, discard_pile = shuffle()
     card_pile, player_tiles = deal(card_pile, board.banker)
-    init_fixed_tiles = { 'pong': [], 'exposed_kong': [], 'concealed_kong': [], 'chew': [], }
+    init_fixed_tiles = { 'flower': [], 'pong': [], 'exposed_kong': [], 'concealed_kong': [], 'chow': [], }
     update_data = {
         'number': board.number,
         'card_pile': ','.join(card_pile),
@@ -450,12 +462,26 @@ def do_board_draw():
         output['result'] = 'NO SUCH PLAYER'
 
     if position:
-        card_pile = board.card_pile.split(',') if board.card_pile else []
-        output['tile'] = card_pile.pop()
         player_tiles = getattr(board, 'player_%s_tiles' % position).split(',')
-        player_tiles.append(output['tile'])
+        normals, flowers = flower(player_tiles)
+        card_pile = board.card_pile.split(',') if board.card_pile else []
+        if flowers:
+            player_fixed_tiles = json.loads(getattr(board, 'player_%s_fixed_tiles' % position))
+            print(type(player_fixed_tiles))
+            player_tiles = normals
+            print(flowers)
+            for f in flowers:
+                print(player_fixed_tiles['flower'])
+                player_fixed_tiles['flower'].append(f)
+                output['tile'] = card_pile.pop()
+                player_tiles.append(output['tile'])
+        else:
+            output['tile'] = card_pile.pop()
+            player_tiles.append(output['tile'])
+
         update_data = {
             'player_%s_tiles' % position: ','.join(player_tiles),
+            'player_%s_fixed_tiles' % position: json.dumps(player_fixed_tiles),
             'card_pile': ','.join(card_pile),
         }
         Board.query.filter_by(id=input['id']).update(update_data)
@@ -617,8 +643,8 @@ def do_board_kong():
     return json.dumps(output)
 
 
-@app.route('/board/chew', methods=['POST'])
-def do_board_chew():
+@app.route('/board/chow', methods=['POST'])
+def do_board_chow():
     input = {
         'id': int(request.form['id']),
         'player': request.form['player'],

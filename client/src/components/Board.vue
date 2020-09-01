@@ -12,33 +12,35 @@
     <el-row>
       <el-col :span="6"><div id="player_1">
         <el-row><el-button id="player_1_id">{{ player_1_id }}</el-button></el-row>
-        <el-row><el-button id="player_1_fixed_tiles">{{ player_1_fixed_tiles }}</el-button></el-row>
+        <el-row><div id="player_1_fixed_tiles"></div></el-row>
         <el-row><div id="player_1_played_tiles"></div></el-row>
       </div></el-col>
       <el-col :span="6"><div id="player_2">
         <el-row><el-button id="player_2_id">{{ player_2_id }}</el-button></el-row>
-        <el-row><el-button id="player_2_fixed_tiles">{{ player_2_fixed_tiles }}</el-button></el-row>
+        <el-row><div id="player_2_fixed_tiles"></div></el-row>
         <el-row><div id="player_2_played_tiles"></div></el-row>
       </div></el-col>
       <el-col :span="6"><div id="player_3">
         <el-row><el-button id="player_3_id">{{ player_3_id }}</el-button></el-row>
-        <el-row><el-button id="player_3_fixed_tiles">{{ player_3_fixed_tiles }}</el-button></el-row>
+        <el-row><div id="player_3_fixed_tiles"></div></el-row>
         <el-row id="player_3_played_tiles"></el-row>
       </div></el-col>
       <el-col :span="6"><div id="player_4">
         <el-row><el-button id="player_4_id">{{ player_4_id }}</el-button></el-row>
-        <el-row><el-button id="player_4_fixed_tiles">{{ player_4_fixed_tiles }}</el-button></el-row>
+        <el-row><div id="player_4_fixed_tiles"></div></el-row>
         <el-row id="player_4_played_tiles"></el-row>
       </div></el-col>
     </el-row>
+    <el-row id="my_tiles">{{ my_tiles }}</el-row>
     <el-row id="my_buttons">
       <el-button id="pong" type="warning" @click="pong()">碰</el-button>
       <el-button id="kong" type="warning" @click="kong()">杠</el-button>
-      <el-button id="chew" type="warning" @click="chew()">吃</el-button>
-      <el-button id="draw" type="primary" @click="draw()">摸</el-button>
-      <el-button id="win" type="danger" @click="win()">和</el-button>
+      <el-button id="chow" type="warning" @click="chow()">吃</el-button>
     </el-row>
-    <el-row id="my_tiles">{{ my_tiles }}</el-row>
+    <el-row id="my_buttons">
+      <el-button id="win" type="danger" @click="win()">和</el-button>
+      <el-button id="draw" type="primary" @click="draw()">摸</el-button>
+    </el-row>
   </div>
 </template>
 
@@ -92,19 +94,44 @@ export default {
         this.len_card_pile = res.data.len_card_pile
         this.banker = res.data.banker
         this.turn = res.data.turn
-        this.player_1_id = res.data.players[0]
-        this.player_2_id = res.data.players[1]
-        this.player_3_id = res.data.players[2]
-        this.player_4_id = res.data.players[3]
 
-        var players = { 'player_1': 0, 'player_2': 0, 'player_3': 0, 'player_4': 0 }
+        var players = { 'player_1': 0, 'player_2': 1, 'player_3': 2, 'player_4': 3 }
         for (var player in players) {
-          this[player + "_fixed_tiles"] = Array(
-            res.data.player_fixed_tiles[player].pong,
-            res.data.player_fixed_tiles[player].exposed_kong,
-            res.data.player_fixed_tiles[player].concealed_pong,
-            res.data.player_fixed_tiles[player].chew,
-          )
+          this[player + '_id'] = res.data.players[players[player]]
+
+          var data = res.data.player_fixed_tiles[player]
+          var played_tiles = document.getElementById(player + '_fixed_tiles')
+          for(var i = 0; i < data.flower.length; i++) {
+            var button = document.createElement('button')
+            button.setAttribute('class', 'el-button el-button--info')
+            button.appendChild(document.createTextNode(data.flower[i]))
+            played_tiles.appendChild(button)
+          }
+          for(var i = 0; i < data.pong.length; i++) {
+            var button = document.createElement('button')
+            button.setAttribute('class', 'el-button el-button--info')
+            button.appendChild(document.createTextNode(data.pong[i]))
+            played_tiles.appendChild(button)
+          }
+          for(var i = 0; i < data.exposed_kong.length; i++) {
+            var button = document.createElement('button')
+            button.setAttribute('class', 'el-button el-button--info')
+            button.appendChild(document.createTextNode(data.exposed_kong[i]))
+            played_tiles.appendChild(button)
+          }
+          for(var i = 0; i < data.concealed_kong.length; i++) {
+            var button = document.createElement('button')
+            button.setAttribute('class', 'el-button el-button--info')
+            button.appendChild(document.createTextNode(data.concealed_kong[i]))
+            played_tiles.appendChild(button)
+          }
+          for(var i = 0; i < data.chow.length; i++) {
+            var button = document.createElement('button')
+            button.setAttribute('class', 'el-button el-button--info')
+            button.appendChild(document.createTextNode(data.chow[i]))
+            played_tiles.appendChild(button)
+          }
+
           var data = res.data.player_played_tiles[player]
           var played_tiles = document.getElementById(player + '_played_tiles')
           for(var i = 0; i < data.length; i++) {
@@ -180,10 +207,10 @@ export default {
         console.error(error)
       })
     },
-    chew() {
+    chow() {
       let data = { 'id': '1', 'player': localStorage['id'] }
       axios
-      .post('/board/chew', qs.stringify(data))
+      .post('/board/chow', qs.stringify(data))
       .then(res => {
       })
       .catch(error => {

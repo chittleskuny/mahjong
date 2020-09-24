@@ -6,10 +6,12 @@ import mysql.connector
 from collections import Counter
 
 from flask import Flask, request
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config.from_object('config')
+CORS(app)
 db = SQLAlchemy(app, use_native_unicode='utf8')
 
 
